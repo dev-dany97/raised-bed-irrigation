@@ -1,0 +1,449 @@
+# Victron-Controller (ESP32)
+#
+# Sits next to the Victron solar charge controller and connects it to Home Assistant:
+#   - reads the charge controller over VE.Direct (battery, PV power, yield, errors)
+#   - can switch the load output on and off (used by the irrigation automation)
+#   - measures the water level in the small tank (analog sensor) and a float switch
+#   - watches its own backup cell and cuts its solar supply when the cell is too low
+#
+# Secrets (API key, fallback hotspot password, Wi-Fi) live in secrets.yaml.
+# See secrets.example.yaml.
+
+substitutions:
+  devicename: "Victron-Controller"
+  config_version: "v2025.04.12"
+  accuracy: "2"
+  victron_update_interval: "5min"
+
+esphome:
+  name: victron-controller
+  friendly_name: Victron-Controller
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+  cpu_frequency: 80MHz
+
+external_components:
+  - source: github://syssi/esphome-victron-vedirect@main
+    components: [victron]
+
+api:
+  encryption:
+    key: !secret victron_controller_api_key
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  power_save_mode: none
+  fast_connect: true
+  output_power: 20dB
+  reboot_timeout: 15min
+
+  ap:
+    ssid: "Victron-Controller"
+    password: !secret victron_controller_ap_password
+
+captive_portal:
+
+logger:
+  baud_rate: 0
+  level: WARN
+
+uart:
+  id: uart_0
+  rx_pin: GPIO16
+  tx_pin: GPIO17
+  baud_rate: 19200
+  rx_buffer_size: 512
+
+victron:
+  id: victron0
+  uart_id: uart_0
+
+i2c:
+  sda: GPIO32
+  scl: GPIO19
+  scan: false
+
+sensor:
+  - platform: ina219
+    address: 0x40
+    shunt_resistance: 0.1 ohm
+    max_voltage: 32.0V
+    max_current: 3.2A
+    update_interval: 30min
+
+    bus_voltage:
+      name: "${devicename} ESP Bus Voltage"
+      accuracy_decimals: 2
+
+    shunt_voltage:
+      name: "${devicename} ESP Shunt Voltage"
+      accuracy_decimals: 3
+
+    current:
+      name: "${devicename} ESP Current"
+      accuracy_decimals: 3
+
+    power:
+      name: "${devicename} ESP Power"
+      accuracy_decimals: 2
+
+  - platform: adc
+    pin: GPIO33
+    name: "${devicename} Wasserstand Spannung"
+    id: wasserstand_spannung
+    attenuation: 12db
+    update_interval: 5s
+    unit_of_measurement: "V"
+    accuracy_decimals: 3
+
+  - platform: template
+    name: "${devicename} Wasserstand"
+    id: wasserstand_prozent
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      return id(wasserstand_spannung).state;
+    filters:
+      - calibrate_linear:
+          - 0.14 -> 0
+          - 0.41 -> 25
+          - 0.92 -> 50
+          - 1.22 -> 75
+          - 1.54 -> 100
+      - clamp:
+          min_value: 0
+          max_value: 100
+      - delta: 6.0
+
+  - platform: adc
+    pin: GPIO34
+    name: "${devicename} Akku Spannung"
+    id: akku_spannung
+    attenuation: 12db
+    update_interval: 10min
+    unit_of_measurement: "V"
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 2
+    filters:
+      - multiply: 3.136
+    on_value_range:
+      - below: 3.45
+        then:
+          - logger.log: "Akku kritisch niedrig -> Solarstromversorgung AUS"
+          - switch.turn_off: ladequelle_relais
+
+      - above: 3.95
+        then:
+          - logger.log: "Akku wieder ausreichend geladen -> Solarstromversorgung EIN"
+          - switch.turn_on: ladequelle_relais
+
+  - platform: template
+    name: "${devicename} Akku Ladezustand"
+    unit_of_measurement: "%"
+    device_class: battery
+    accuracy_decimals: 0
+    update_interval: 10min
+    lambda: |-
+      float v = id(akku_spannung).state;
+      if (isnan(v)) return NAN;
+      if (v >= 4.20) return 100;
+      if (v <= 3.30) return 0;
+      return (v - 3.30) / (4.20 - 3.30) * 100.0;
+
+  - platform: victron
+    victron_id: victron0
+
+    battery_voltage:
+      name: "Battery Voltage"
+      id: victron_battery_voltage
+      accuracy_decimals: ${accuracy}
+      filters:
+        - throttle: ${victron_update_interval}
+
+    battery_current:
+      name: "Battery Current"
+      id: victron_battery_current
+      accuracy_decimals: ${accuracy}
+      filters:
+        - throttle: ${victron_update_interval}
+
+    panel_voltage:
+      name: "Panel Voltage"
+      accuracy_decimals: ${accuracy}
+      filters:
+        - throttle: ${victron_update_interval}
+
+    panel_power:
+      name: "PV Power"
+      id: pv_power
+      accuracy_decimals: ${accuracy}
+      filters:
+        - throttle: ${victron_update_interval}
+
+    load_current:
+      name: "Load Current"
+      id: victron_load_current
+      accuracy_decimals: ${accuracy}
+      filters:
+        - throttle: 5s
+
+    yield_today:
+      name: "Yield Today"
+      accuracy_decimals: ${accuracy}
+      filters:
+        - throttle: ${victron_update_interval}
+
+    max_power_today:
+      name: "Max Power Today"
+      accuracy_decimals: ${accuracy}
+      filters:
+        - throttle: ${victron_update_interval}
+
+    yield_yesterday:
+      name: "Yield Yesterday"
+      accuracy_decimals: ${accuracy}
+      filters:
+        - throttle: ${victron_update_interval}
+
+    max_power_yesterday:
+      name: "Max Power Yesterday"
+      accuracy_decimals: ${accuracy}
+      filters:
+        - throttle: ${victron_update_interval}
+
+    charging_mode_id:
+      name: "Charging Mode ID"
+      filters:
+        - throttle: ${victron_update_interval}
+
+    tracking_mode_id:
+      name: "Tracking Mode ID"
+      filters:
+        - throttle: ${victron_update_interval}
+
+    error_code:
+      name: "Error Code"
+      filters:
+        - throttle: 30s
+
+  - platform: template
+    name: "Victron Load Power"
+    id: victron_load_power
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    accuracy_decimals: 2
+    update_interval: 5s
+    lambda: |-
+      float v = id(victron_battery_voltage).state;
+      float i = id(victron_load_current).state;
+      if (isnan(v) || isnan(i)) return NAN;
+      return v * i;
+
+  - platform: template
+    name: "Victron Battery Power"
+    id: victron_battery_power
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    accuracy_decimals: 2
+    update_interval: 5s
+    lambda: |-
+      float v = id(victron_battery_voltage).state;
+      float i = id(victron_battery_current).state;
+      if (isnan(v) || isnan(i)) return NAN;
+      return v * i;
+
+  - platform: integration
+    name: "Solar Energy Produced"
+    sensor: pv_power
+    unit_of_measurement: "Wh"
+    time_unit: h
+    accuracy_decimals: 2
+    state_class: total_increasing
+    device_class: energy
+
+  - platform: wifi_signal
+    name: "${devicename} WiFi Signal"
+    id: rssi_sensor
+    update_interval: 60s
+
+  - platform: uptime
+    name: "${devicename} Uptime"
+    id: uptime_s
+    update_interval: 2h
+
+text_sensor:
+  - platform: victron
+    victron_id: victron0
+
+    charging_mode:
+      name: "Charging Mode"
+
+    tracking_mode:
+      name: "Tracking Mode"
+
+    error:
+      name: "Error"
+
+    device_type:
+      name: "Device Type"
+
+    firmware_version:
+      name: "Firmware Version"
+
+    serial_number:
+      name: "Serial Number"
+
+  - platform: template
+    name: "${devicename} Config Version"
+    icon: mdi:information-outline
+    lambda: |-
+      return {"${config_version}"};
+
+  - platform: version
+    name: "${devicename} ESPHome Version"
+    icon: mdi:information-outline
+
+  - platform: wifi_info
+    ip_address:
+      name: "${devicename} IP Address"
+      icon: mdi:ip
+    ssid:
+      name: "${devicename} Connected SSID"
+      icon: mdi:wifi
+    bssid:
+      name: "${devicename} Connected BSSID"
+    mac_address:
+      name: "${devicename} MAC Address"
+
+globals:
+  - id: motion_hits
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO35
+      mode:
+        input: true
+    name: "${devicename} Bewegung"
+    device_class: motion
+    filters:
+      - delayed_on: 500ms
+      - delayed_off: 5s
+
+  - platform: gpio
+    name: "${devicename} Schalter 1"
+    id: schalter_1
+    pin:
+      number: GPIO5
+      mode: INPUT_PULLUP
+      inverted: true
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms
+
+  - platform: gpio
+    name: "${devicename} Schalter 2"
+    id: schalter_2
+    pin:
+      number: GPIO26
+      mode: INPUT_PULLUP
+      inverted: true
+    filters:
+      - delayed_on: 50ms
+      - delayed_off: 50ms
+
+  - platform: gpio
+    id: water_level
+    name: "Zysterrn Water Level"
+    pin:
+      number: GPIO22
+      mode: INPUT_PULLUP
+    filters:
+      - delayed_on: 300ms
+      - delayed_off: 300ms
+
+switch:
+  - platform: restart
+    name: "${devicename} Restart"
+    icon: mdi:reload-alert
+
+  - platform: gpio
+    name: "${devicename} Solarstromversorgung"
+    id: ladequelle_relais
+    pin: GPIO4
+    restore_mode: RESTORE_DEFAULT_OFF
+
+# VE.Direct HEX commands sent straight to the charge controller.
+button:
+  - platform: uart
+    name: "Victron Remote Control Enable"
+    uart_id: uart_0
+    data: ":80202000200000047\n"
+
+  - platform: uart
+    name: "Victron Charger ON"
+    uart_id: uart_0
+    data: ":8000200014A\n"
+
+  - platform: uart
+    name: "Victron Charger OFF"
+    uart_id: uart_0
+    data: ":80002000447\n"
+
+  - platform: uart
+    name: "Victron Restart"
+    uart_id: uart_0
+    data: ":64F\n"
+
+  - platform: uart
+    name: "Victron Load Output OFF"
+    uart_id: uart_0
+    data: ":8ABED0000B5\n"
+
+  - platform: uart
+    name: "Victron Load Output ON"
+    uart_id: uart_0
+    data: ":8ABED0004B1\n"
+
+  - platform: uart
+    name: "Victron Load Output AUTO"
+    uart_id: uart_0
+    data: ":8ABED0001B4\n"
+
+  - platform: template
+    name: "Victron Controller Sleep 2h"
+    on_press:
+      - deep_sleep.enter:
+          id: deep_sleep_1
+          sleep_duration: 2h
+
+  - platform: template
+    name: "Victron Controller Sleep 4h"
+    on_press:
+      - deep_sleep.enter:
+          id: deep_sleep_1
+          sleep_duration: 4h
+
+  - platform: template
+    name: "Victron Controller Sleep 6h"
+    on_press:
+      - deep_sleep.enter:
+          id: deep_sleep_1
+          sleep_duration: 6h
+
+deep_sleep:
+  id: deep_sleep_1

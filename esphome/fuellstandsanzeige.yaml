@@ -1,0 +1,115 @@
+# Füllstandsanzeige (ESP8266 / Wemos D1 mini)
+#
+# Measures the water level in the rainwater cistern with a TL-136 pressure sensor
+# and an ADS1115 ADC and turns it into centimetres and litres (up to 4,500 l).
+# Based on this guide (German):
+# https://nachbelichtet.com/wasserstand-in-zisternen-mit-homeassistant-esphome-und-tl-136-drucksensor-messen
+#
+# Secrets (API key, OTA password, fallback hotspot password, Wi-Fi) live in
+# secrets.yaml. See secrets.example.yaml.
+
+esphome:
+  name: fullstandsanzeige
+  friendly_name: Füllstandsanzeige
+  platform: ESP8266
+  board: d1_mini
+
+# Enable logging
+logger:
+  baud_rate: 0
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret fuellstandsanzeige_api_key
+
+ota:
+  password: !secret fuellstandsanzeige_ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Fullstandsanzeige"
+    password: !secret fuellstandsanzeige_ap_password
+
+captive_portal:
+
+# i2c Bus auf D1 und D2 konfigurieren
+i2c:
+  id: bus_a
+  sda: D2
+  scl: D1
+  scan: True
+
+# 1-Wire-Sensoren am Pin D4
+#dallas:
+#  - pin: D4
+
+# ADC einrichten, ADDR-Pin ist auf VCC gelegt, daher Adresse 0x49
+ads1115:
+  - address: 0x49
+    id: ads1115_49
+
+# ADC Kanal A0 zur Messwerterfassung
+sensor:
+  - platform: ads1115
+    multiplexer: 'A0_GND'
+    gain: 4.096
+    name: "Wasserstand Zisterne cm"
+    id: levelraw
+    update_interval: 1s #ToDo: change it later
+    unit_of_measurement: cm
+    accuracy_decimals: 1
+    icon: "mdi:car-coolant-level"
+# Messwerte glätten:
+    filters:
+      - sliding_window_moving_average:
+          window_size: 20
+          send_every: 2 #ToDo: change it later
+# Spannungen nach Messreihe in Füllhöhe umrechnen
+      - calibrate_linear:
+          - 0.0 -> 0.0
+          - 1.55 -> 50
+          - 3.1 -> 99
+
+# Füllmenge nach Füllstandskurve berechnen
+
+  - platform: template
+    name: "Zisterne Liter"
+    lambda: |-
+      return id(levelraw).state;
+
+    filters:
+      - calibrate_linear:
+          - 1 -> 45
+          - 10 -> 450
+          - 12.5 -> 562
+          - 15 -> 675
+          - 17.5 -> 787
+          - 20 -> 900
+          - 25 -> 1125
+          - 27.5 -> 1237
+          - 30 -> 1350
+          - 40 -> 1800
+          - 50 -> 2250
+          - 60 -> 2700
+          - 70 -> 3150
+          - 80 -> 3600
+          - 85 -> 3825
+          - 90 -> 4050
+          - 95 -> 4275
+          - 99 -> 4500
+
+    unit_of_measurement: l
+    accuracy_decimals: 0
+
+# 1-Wire Temperatursensor
+
+#  - platform: dallas
+#    address: 0xef0516905a21ff28
+#    name: "Zisterne Sens1"
+#    unit_of_measurement: °C
+#    accuracy_decimals: 1
