@@ -1,0 +1,67 @@
+# Raised bed irrigation – Home Assistant automation
+#
+# Runs every day at 11:00:
+#   1. Turns on the load output of the Victron solar charge controller (powers sensor and pump).
+#   2. Waits 2 minutes so the soil moisture sensor can report a fresh value.
+#   3. If the value is valid and below 20 % the pump runs for 15 seconds.
+#   4. Writes the result to the logbook and turns the load output off again.
+#
+# Paste this into Settings > Automations > (new) > Edit in YAML
+# or add it to your automations.yaml. Change the entity IDs to match your setup.
+
+alias: Hochbeet automatische Bewässerung
+description: Prüft täglich um 11 Uhr die Bodenfeuchte und bewässert bei unter 20 %.
+triggers:
+  - trigger: time
+    at: '11:00:00'
+conditions: []
+actions:
+  - action: button.press
+    target:
+      entity_id: button.victron_controller_victron_load_output_on
+  - delay: '00:02:00'
+  - if:
+      - condition: template
+        value_template: |
+          {{
+            states('sensor.outside_relay_soil_moisture')
+            not in ['unknown', 'unavailable']
+          }}
+    then:
+      - if:
+          - condition: numeric_state
+            entity_id: sensor.outside_relay_soil_moisture
+            below: 20
+        then:
+          - action: switch.turn_on
+            target:
+              entity_id: switch.outside_relay_plant_water_pump
+          - delay: '00:00:15'
+          - action: switch.turn_off
+            target:
+              entity_id: switch.outside_relay_plant_water_pump
+          - action: logbook.log
+            data:
+              name: Hochbeet Bewässerung
+              message: >
+                Hochbeet wurde für 15 Sekunden bewässert. Bodenfeuchte vor der
+                Bewässerung: {{ states('sensor.outside_relay_soil_moisture') }}
+                %.
+        else:
+          - action: logbook.log
+            data:
+              name: Hochbeet Bewässerung
+              message: >
+                Keine Bewässerung notwendig. Bodenfeuchte: {{
+                states('sensor.outside_relay_soil_moisture') }} %.
+    else:
+      - action: logbook.log
+        data:
+          name: Hochbeet Bewässerung
+          message: >
+            Bodenfeuchtesensor liefert keinen gültigen Wert. Bewässerung wurde
+            nicht gestartet.
+  - action: button.press
+    target:
+      entity_id: button.victron_controller_victron_load_output_off
+mode: single

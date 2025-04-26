@@ -12,6 +12,7 @@
 [The bed](#the-bed) •
 [Hardware](#hardware) •
 [ESPHome](#esphome-devices) •
+[Automation](#home-assistant-automation) •
 [Roadmap](#roadmap) •
 [License](#license)
 
@@ -97,6 +98,26 @@ The ESPHome configs are in [`esphome/`](esphome):
 | [`fuellstandsanzeige.yaml`](esphome/fuellstandsanzeige.yaml) | ESP8266 with a TL-136 pressure sensor for the cistern level, based on [this guide (German)](https://nachbelichtet.com/wasserstand-in-zisternen-mit-homeassistant-esphome-und-tl-136-drucksensor-messen) |
 
 Passwords and keys are not in this repo. Copy [`secrets.example.yaml`](esphome/secrets.example.yaml) to `secrets.yaml`, fill in your own values and create a new API key for every device (`openssl rand -base64 32`). The VE.Direct part uses [syssi/esphome-victron-vedirect](https://github.com/syssi/esphome-victron-vedirect).
+
+## Home Assistant automation
+
+The automation is in [`homeassistant/automation.yaml`](homeassistant/automation.yaml).
+
+1. At 11:00 it turns on the load output of the charge controller.
+2. It waits 2 minutes so the sensor can send a fresh value.
+3. If the value is valid and below 20 % the pump runs for 15 seconds.
+4. If the sensor sends no valid value nothing is watered. A broken sensor can't flood the bed.
+5. Every run is written to the logbook and the load output is turned off again.
+
+To use it, open **Settings › Automations & Scenes › Create automation › Edit in YAML**, paste the file and change the entity IDs to your own:
+
+| Entity | Used for |
+|---|---|
+| `button.victron_controller_victron_load_output_on` / `_off` | Power on and off |
+| `sensor.outside_relay_soil_moisture` | Soil moisture in % |
+| `switch.outside_relay_plant_water_pump` | Pump |
+
+You can change the threshold (`below: 20`) and the watering time (`delay: '00:00:15'`) to fit your plants and pump.
 
 ## Roadmap
 
