@@ -6,6 +6,10 @@
 
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-automation-18BCF2?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
 [![Solar](https://img.shields.io/badge/power-solar-F5B700)](#hardware)
+[![ESPHome](https://img.shields.io/badge/ESPHome-devices-000000?logo=esphome&logoColor=white)](#esphome-devices)
+[![ESP32](https://img.shields.io/badge/ESP32%20%2F%20ESP8266-Wi--Fi-E7352C?logo=espressif&logoColor=white)](#esphome-devices)
+[![Victron](https://img.shields.io/badge/Victron-SmartSolar%20MPPT%2075%2F15-0066B3)](#hardware)
+[![VE.Direct](https://img.shields.io/badge/VE.Direct-UART-0066B3)](https://github.com/syssi/esphome-victron-vedirect)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 <img src="docs/images/cover.jpg" width="850" alt="The planted raised bed on the balcony">
