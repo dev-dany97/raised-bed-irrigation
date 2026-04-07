@@ -93,6 +93,7 @@ All devices talk to Home Assistant over Wi-Fi with the encrypted ESPHome API.
 | Self-built soil moisture sensors | Measure how wet the soil is. Build and code: [dev-dany97/moistureSensor](https://github.com/dev-dany97/moistureSensor) |
 | Relay ("outside relay") | Switches the pump and reports the soil moisture to Home Assistant |
 | Drip line with drippers | Brings the water right to each plant |
+| 12 V LED strip (5 m, 30 LEDs/m, 7.2 W/m, 10 mm) | Lights up the bed and the balcony |
 | Füllstandsanzeige (ESP8266, ADS1115, TL-136 liquid level sensor, 12–32 V DC, 4–20 mA) | Measures the water level of the rainwater cistern in cm and litres ([config](esphome/fuellstandsanzeige.yaml)) |
 
 | Solar panel | Charge controller | Water pump | Level sensor |
