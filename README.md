@@ -90,6 +90,10 @@ The control panel sits next to the cistern and has two switches:
 1. **Power** turns the 12 V battery supply on and off.
 2. **Manual watering** runs the pump by hand, without waiting for the automation.
 
+<img src="docs/images/dashboard-tablet.jpg" width="520" alt="Home Assistant balcony dashboard on a wall-mounted Amazon Fire tablet">
+
+Outside on the wall, an Amazon Fire tablet shows the Home Assistant balcony dashboard. From there the bed can be watered with one tap and the cistern level is always in view.
+
 ### Maintenance
 
 <img src="docs/images/wood-stain.jpg" width="320" alt="Wood stain on the edge of the raised bed">
