@@ -81,13 +81,28 @@ All devices talk to Home Assistant over Wi-Fi with the encrypted ESPHome API.
 |---|---|---|
 | <img src="docs/images/drip-and-sensor.jpg" width="260"> | <img src="docs/images/planted-autumn.jpg" width="260"> | <img src="docs/images/winter-cover.jpg" width="260"> |
 
+### Control panel
+
+<img src="docs/images/control-panel.jpg" width="520" alt="Control panel with two switches next to the cistern">
+
+The control panel sits next to the cistern and has two switches:
+
+1. **Power** turns the 12 V battery supply on and off.
+2. **Manual watering** runs the pump by hand, without waiting for the automation.
+
+### Maintenance
+
+<img src="docs/images/wood-stain.jpg" width="320" alt="Wood stain on the edge of the raised bed">
+
+The wood gets a new coat of outdoor wood stain once a year so it stays weatherproof.
+
 ## Hardware
 
 | Part | What it does |
 |---|---|
 | 100 W flexible solar panel (97.4 × 56.5 cm, 1.05 kg) | Charges the battery |
 | Victron Energy SmartSolar MPPT 75/15 (75 V, 15 A, 12/24 V, Bluetooth) | Solar charge controller. Its load output is switched on only while the automation runs. |
-| Battery | Stores the solar energy, there is no mains power |
+| BIG Professional Solar DC 95502 battery (12 V, 80 Ah C100, deep cycle) | Stores the solar energy, there is no mains power |
 | Victron-Controller (ESP32) | Reads the charge controller over VE.Direct, switches the load output and measures the tank level ([config](esphome/victron-controller.yaml)) |
 | Small water tank with QWORK® DC 12 V water pump (800 L/h) | Stores the water and pushes it into the drip line |
 | Self-built soil moisture sensors | Measure how wet the soil is. Build and code: [dev-dany97/moistureSensor](https://github.com/dev-dany97/moistureSensor) |
@@ -96,10 +111,10 @@ All devices talk to Home Assistant over Wi-Fi with the encrypted ESPHome API.
 | 12 V LED strip (5 m, 30 LEDs/m, 7.2 W/m, 10 mm) | Lights up the bed and the balcony |
 | Füllstandsanzeige (ESP8266, ADS1115, TL-136 liquid level sensor, 12–32 V DC, 4–20 mA) | Measures the water level of the rainwater cistern in cm and litres ([config](esphome/fuellstandsanzeige.yaml)) |
 
-| Solar panel | Charge controller | Water pump | Level sensor |
-|---|---|---|---|
-| <img src="docs/images/parts/solar-panel.png" width="180" alt="Flexible solar panel"> | <img src="docs/images/parts/victron-mppt-75-15.png" width="180" alt="Victron SmartSolar MPPT 75/15"> | <img src="docs/images/parts/water-pump.png" width="180" alt="QWORK DC 12V water pump"> | <img src="docs/images/parts/tl-136-level-sensor.png" width="180" alt="TL-136 liquid level sensor"> |
-| 100 W, flexible | Victron SmartSolar MPPT 75/15 | QWORK® DC 12 V, 800 L/h | TL-136, 12–32 V DC, 4–20 mA |
+| Solar panel | Charge controller | Battery | Water pump | Level sensor |
+|---|---|---|---|---|
+| <img src="docs/images/parts/solar-panel.png" width="180" alt="Flexible solar panel"> | <img src="docs/images/parts/victron-mppt-75-15.png" width="180" alt="Victron SmartSolar MPPT 75/15"> | <img src="docs/images/parts/battery.png" width="180" alt="BIG Solar DC 12V 80Ah battery"> | <img src="docs/images/parts/water-pump.png" width="180" alt="QWORK DC 12V water pump"> | <img src="docs/images/parts/tl-136-level-sensor.png" width="180" alt="TL-136 liquid level sensor"> |
+| 100 W, flexible | Victron SmartSolar MPPT 75/15 | BIG Solar DC, 12 V, 80 Ah | QWORK® DC 12 V, 800 L/h | TL-136, 12–32 V DC, 4–20 mA |
 
 ## ESPHome devices
 
