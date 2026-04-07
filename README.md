@@ -8,6 +8,8 @@
 [![Solar](https://img.shields.io/badge/power-solar-F5B700)](#hardware)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+<img src="docs/images/cover.jpg" width="850" alt="The planted raised bed on the balcony">
+
 [How it works](#how-it-works) •
 [The bed](#the-bed) •
 [Hardware](#hardware) •
@@ -60,14 +62,20 @@ All devices talk to Home Assistant over Wi-Fi with the encrypted ESPHome API.
 
 ## The bed
 
-| Build | Drainage |
-|---|---|
-| <img src="docs/images/build-liner.jpg" width="260"> | <img src="docs/images/build-drainage.jpg" width="260"> |
+| Build | Drainage | Planted |
+|---|---|---|
+| <img src="docs/images/build-liner.jpg" width="260"> | <img src="docs/images/build-drainage.jpg" width="260"> | <img src="docs/images/planted-summer.jpg" width="260"> |
 
 - Wooden frame with a top edge made of grooved decking boards
 - Dimpled membrane on the inside so the wet soil doesn't touch the wood
 - Layers from bottom to top: expanded clay (drainage), base filling, compost and raised bed soil
 - Drip line through the whole bed with one adjustable dripper per plant
+- Tomatoes, berries, lettuce and herbs
+- A small greenhouse cover for the winter
+
+| Dripper and sensor | Autumn | Winter |
+|---|---|---|
+| <img src="docs/images/drip-and-sensor.jpg" width="260"> | <img src="docs/images/planted-autumn.jpg" width="260"> | <img src="docs/images/winter-cover.jpg" width="260"> |
 
 ## Hardware
 
